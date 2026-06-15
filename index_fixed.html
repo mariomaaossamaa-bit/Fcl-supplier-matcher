@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FCL Supplier Matcher</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f8fafc;padding:20px 16px;min-height:100vh}
+.wrap{max-width:720px;margin:0 auto}
+.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:16px;padding:18px 24px;margin-bottom:20px;color:white}
+.header-top{display:flex;justify-content:space-between;align-items:center}
+.header small{font-size:11px;opacity:.75;letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:4px}
+.header h1{font-size:22px;font-weight:800;margin-bottom:2px}
+.header p{font-size:12px;opacity:.7}
+.badge{background:rgba(255,255,255,.2);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
+.badge.green{background:rgba(16,185,129,.3)}
+.tabs{display:flex;gap:8px;margin-bottom:18px}
+.tab{flex:1;padding:9px;border-radius:9px;border:none;cursor:pointer;font-weight:600;font-size:13px;background:white;color:#64748b;box-shadow:0 1px 4px rgba(0,0,0,.08);transition:all .15s}
+.tab.active{background:#667eea;color:white}
+.card{background:white;border-radius:14px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.07);margin-bottom:12px}
+.card.accent-left{border-left:4px solid #667eea}
+.card.accent-top-green{border-top:4px solid #10b981}
+input,select,textarea{width:100%;padding:9px 11px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none;background:white;transition:border .15s}
+input:focus,textarea:focus{border-color:#667eea}
+textarea{resize:vertical;font-size:14px}
+.btn{padding:10px 20px;border-radius:9px;border:none;font-weight:700;font-size:14px;cursor:pointer;transition:opacity .15s}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;width:100%}
+.btn-success{background:#10b981;color:white;width:100%}
+.btn-outline{background:white;color:#64748b;border:1px solid #e2e8f0;width:100%}
+.btn-sm{padding:4px 12px;font-size:12px;width:auto}
+.btn-danger-sm{padding:4px 12px;font-size:12px;width:auto;background:#fef2f2;color:#ef4444;border:1px solid #fecaca}
+.result-card{background:#f5f7ff;border:1px solid #dde1ff;border-left:4px solid #667eea;border-radius:10px;padding:12px 16px;margin-bottom:10px}
+.result-name{font-weight:700;font-size:15px;color:#1e293b}
+.result-reason{font-size:13px;color:#64748b;margin-top:4px}
+.note-box{background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:10px 14px;font-size:13px;color:#92400e;margin-top:12px}
+.err-box{background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px;color:#ef4444;font-size:14px;text-align:center}
+.controls{display:flex;gap:8px;margin-bottom:10px}
+.controls input{flex:2}
+.controls select{flex:1}
+.db-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.db-count{font-weight:600;font-size:13px;color:#64748b}
+.add-btn{padding:8px 16px;border-radius:9px;border:none;font-weight:600;font-size:13px;cursor:pointer;background:#667eea;color:white}
+.add-btn.cancel{background:#f1f5f9;color:#64748b}
+.field{margin-bottom:10px}
+.field label{font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px}
+.s-head{display:flex;justify-content:space-between;align-items:flex-start}
+.s-name{font-weight:700;font-size:15px;color:#1e293b}
+.s-cat{font-size:11px;color:#94a3b8;margin-top:2px}
+.s-spec{font-size:13px;color:#475569;margin-top:8px}
+.s-web{font-size:13px;color:#3b82f6;margin-top:4px}
+.s-btns{display:flex;gap:6px;flex-shrink:0;margin-left:10px}
+.edit-btns{display:flex;gap:8px;margin-top:10px}
+.hint{font-size:11px;color:#94a3b8;text-align:center;margin-top:6px}
+.loading{text-align:center;padding:40px 20px;color:#94a3b8}
+.spinner{display:inline-block;width:24px;height:24px;border:3px solid #e2e8f0;border-top-color:#667eea;border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:30px;color:#94a3b8;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="header">
+  <small>Façade Creations Limited</small>
+  <div class="header-top">
+    <div>
+      <h1>Supplier Matcher</h1>
+      <p id="supCount">Connecting...</p>
+    </div>
+    <div class="badge green" id="statusBadge">⏳ Loading</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('match')">🔍 Find Supplier</button>
+  <button class="tab" onclick="switchTab('db')">📋 Supplier Database</button>
+</div>
+
+<!-- MATCH TAB -->
+<div id="tab-match">
+  <div class="card">
+    <div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:10px">Paste or type the enquiry</div>
+    <textarea id="enquiryInput" rows="5" placeholder="e.g. We need double-glazed aluminium sliding doors and fixed lights for a hotel lobby. Fire rating required on all glazing."></textarea>
+    <br><br>
+    <button class="btn btn-primary" id="matchBtn" onclick="findSuppliers()">Find Supplier →</button>
+    <div class="hint">AI-powered · Ctrl + Enter to search</div>
+  </div>
+  <div id="results"></div>
+</div>
+
+<!-- DATABASE TAB -->
+<div id="tab-db" style="display:none">
+  <div class="controls">
+    <input type="text" id="searchInput" placeholder="🔍 Search name, product, website..." oninput="renderDb()">
+    <select id="catSelect" onchange="renderDb()">
+      <option value="All">All Categories</option>
+    </select>
+  </div>
+  <div class="db-bar">
+    <span class="db-count" id="dbCount">Loading...</span>
+    <button class="add-btn" id="addBtn" onclick="toggleAdd()">+ Add Supplier</button>
+  </div>
+  <div id="addForm" style="display:none" class="card accent-top-green">
+    <div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:14px">New Supplier</div>
+    <div class="field"><label>Company Name *</label><input id="nName" placeholder="e.g. Schüco"></div>
+    <div class="field"><label>Products / Specialties</label><input id="nSpec" placeholder="e.g. aluminium curtain wall, sliding doors, entrance systems"></div>
+    <div class="field"><label>Website</label><input id="nWeb" placeholder="e.g. schueco.com"></div>
+    <div class="field"><label>Category / Notes</label><input id="nNotes" placeholder="e.g. 🟢 Aluminium Systems ⭐ Main Supplier"></div>
+    <button class="btn btn-success" onclick="addSupplier()">Save Supplier</button>
+  </div>
+  <div id="supplierList"></div>
+</div>
+
+</div>
+
+<script>
+let suppliers = [];
+let editingId = null;
+let showAdd = false;
+let dbLoaded = false;
+
+// ── API ──
+async function loadSuppliers() {
+  try {
+    const res = await fetch('/.netlify/functions/suppliers');
+    if (!res.ok) throw new Error('API error');
+    suppliers = await res.json();
+    dbLoaded = true;
+    document.getElementById('supCount').textContent = suppliers.length + ' suppliers · AI-powered';
+    document.getElementById('statusBadge').textContent = '🔗 Live Shared Database';
+    refreshCats();
+    renderDb();
+  } catch {
+    document.getElementById('statusBadge').textContent = '⚠️ Offline Mode';
+    document.getElementById('supCount').textContent = 'Could not connect to database';
+    document.getElementById('statusBadge').className = 'badge';
+  }
+}
+
+async function saveSuppliers() {
+  try {
+    await fetch('/.netlify/functions/suppliers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(suppliers)
+    });
+  } catch { console.error('Save failed'); }
+}
+
+async function aiMatch(enquiry) {
+  const res = await fetch('/.netlify/functions/match', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enquiry, suppliers })
+  });
+  if (!res.ok) throw new Error('Match API error');
+  return res.json();
+}
+
+// ── MATCHING ──
+async function findSuppliers() {
+  const q = document.getElementById('enquiryInput').value.trim();
+  if (!q || !suppliers.length) return;
+  const btn = document.getElementById('matchBtn');
+  btn.textContent = '⏳ Matching...'; btn.disabled = true;
+  document.getElementById('results').innerHTML = '';
+  try {
+    const result = await aiMatch(q);
+    renderResults(result);
+  } catch {
+    document.getElementById('results').innerHTML = '<div class="err-box">⚠️ Something went wrong. Please try again.</div>';
+  }
+  btn.textContent = 'Find Supplier →'; btn.disabled = false;
+}
+
+function renderResults(data) {
+  const R = document.getElementById('results');
+  let html = '<div class="card"><div style="font-weight:700;font-size:15px;color:#1e293b;margin-bottom:14px">✅ Recommended Suppliers</div>';
+  if (data.recommended?.length) {
+    data.recommended.forEach(r => {
+      html += `<div class="result-card"><div class="result-name">${esc(r.name)}</div><div class="result-reason">${esc(r.reason)}</div></div>`;
+    });
+  } else {
+    html += '<div style="color:#64748b;font-size:14px">No match found. Consider adding more relevant suppliers.</div>';
+  }
+  if (data.notes) html += `<div class="note-box">💡 ${esc(data.notes)}</div>`;
+  html += `<br><button class="btn btn-outline" onclick="clearMatch()">New Enquiry</button></div>`;
+  R.innerHTML = html;
+}
+
+function clearMatch() {
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('enquiryInput').value = '';
+}
+
+// ── DATABASE ──
+function getCat(notes) { return notes.replace(/\s*⭐.*$/, '').replace(/\s*🌍.*$/, '').trim(); }
+
+function refreshCats() {
+  const sel = document.getElementById('catSelect');
+  const cur = sel.value;
+  const cats = ['All', ...new Set(suppliers.map(s => getCat(s.notes)))];
+  sel.innerHTML = cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  if (cats.includes(cur)) sel.value = cur;
+}
+
+function renderDb() {
+  const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const cat = document.getElementById('catSelect')?.value || 'All';
+  const filtered = suppliers.filter(s => {
+    const ms = !q || s.name.toLowerCase().includes(q) || s.specialty.toLowerCase().includes(q) || (s.contact||'').toLowerCase().includes(q);
+    const mc = cat === 'All' || getCat(s.notes) === cat;
+    return ms && mc;
+  });
+  document.getElementById('dbCount').textContent = `${filtered.length} of ${suppliers.length} suppliers`;
+
+  if (!dbLoaded) { document.getElementById('supplierList').innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading suppliers...</div></div>'; return; }
+  if (!filtered.length) { document.getElementById('supplierList').innerHTML = '<div class="empty">No suppliers match your search.</div>'; return; }
+
+  document.getElementById('supplierList').innerHTML = filtered.map(s => {
+    if (editingId === s.id) {
+      return `<div class="card accent-left">
+        <div class="field"><label>Name</label><input id="e_name" value="${esc(s.name)}"></div>
+        <div class="field"><label>Products</label><input id="e_spec" value="${esc(s.specialty)}"></div>
+        <div class="field"><label>Website</label><input id="e_web" value="${esc(s.contact)}"></div>
+        <div class="field"><label>Notes</label><input id="e_notes" value="${esc(s.notes)}"></div>
+        <div class="edit-btns">
+          <button class="btn btn-success" style="width:auto;padding:8px 18px" onclick="saveEdit('${s.id}')">Save</button>
+          <button class="btn btn-outline" style="width:auto;padding:8px 18px" onclick="cancelEdit()">Cancel</button>
+        </div>
+      </div>`;
+    }
+    return `<div class="card accent-left">
+      <div class="s-head">
+        <div style="flex:1;min-width:0">
+          <div class="s-name">${esc(s.name)}</div>
+          <div class="s-cat">${esc(s.notes)}</div>
+        </div>
+        <div class="s-btns">
+          <button class="btn btn-outline btn-sm" onclick="startEdit('${s.id}')">Edit</button>
+          <button class="btn btn-danger-sm" onclick="deleteSup('${s.id}')">✕</button>
+        </div>
+      </div>
+      ${s.specialty ? `<div class="s-spec">📦 ${esc(s.specialty)}</div>` : ''}
+      ${s.contact ? `<div class="s-web">🌐 ${esc(s.contact)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function toggleAdd() {
+  showAdd = !showAdd;
+  document.getElementById('addForm').style.display = showAdd ? '' : 'none';
+  const btn = document.getElementById('addBtn');
+  btn.textContent = showAdd ? '✕ Cancel' : '+ Add Supplier';
+  btn.className = 'add-btn' + (showAdd ? ' cancel' : '');
+}
+
+function addSupplier() {
+  const name = document.getElementById('nName').value.trim();
+  if (!name) return;
+  suppliers.push({ id: 's' + Date.now(), name, specialty: document.getElementById('nSpec').value.trim(), contact: document.getElementById('nWeb').value.trim(), notes: document.getElementById('nNotes').value.trim() });
+  saveSuppliers();
+  toggleAdd();
+  refreshCats();
+  renderDb();
+  ['nName','nSpec','nWeb','nNotes'].forEach(id => { document.getElementById(id).value = ''; });
+}
+
+function startEdit(id) { editingId = id; renderDb(); }
+function cancelEdit() { editingId = null; renderDb(); }
+function saveEdit(id) {
+  const i = suppliers.findIndex(s => s.id === id);
+  if (i < 0) return;
+  suppliers[i] = { ...suppliers[i], name: document.getElementById('e_name').value.trim(), specialty: document.getElementById('e_spec').value.trim(), contact: document.getElementById('e_web').value.trim(), notes: document.getElementById('e_notes').value.trim() };
+  saveSuppliers(); editingId = null; refreshCats(); renderDb();
+}
+function deleteSup(id) {
+  suppliers = suppliers.filter(s => s.id !== id);
+  saveSuppliers(); refreshCats(); renderDb();
+}
+
+// ── UI ──
+function switchTab(t) {
+  document.getElementById('tab-match').style.display = t === 'match' ? '' : 'none';
+  document.getElementById('tab-db').style.display = t === 'db' ? '' : 'none';
+  document.querySelectorAll('.tab').forEach((el, i) => el.classList.toggle('active', (i === 0 && t === 'match') || (i === 1 && t === 'db')));
+}
+
+function esc(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+document.getElementById('enquiryInput').addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter') findSuppliers();
+});
+
+loadSuppliers();
+</script>
+</body>
+</html>
