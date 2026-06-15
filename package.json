@@ -1,0 +1,8 @@
+{
+  "name": "fcl-supplier-matcher",
+  "version": "1.0.0",
+  "description": "Façade Creations Limited – Supplier Matcher",
+  "dependencies": {
+    "@netlify/blobs": "^8.0.0"
+  }
+}
