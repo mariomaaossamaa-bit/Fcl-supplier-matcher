@@ -1,4 +1,5 @@
 [build]
+  base = "fcl-matcher"
   publish = "public"
   functions = "netlify/functions"
 
